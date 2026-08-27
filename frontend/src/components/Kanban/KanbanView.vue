@@ -50,7 +50,14 @@
                   </div>
                 </template>
               </Popover>
-              <div class="text-ink-gray-9">{{ column.column.name }}</div>
+              <div class="flex items-center gap-2">
+                <div class="text-ink-gray-9 font-semibold">{{ column.column.name }}</div>
+                <div
+                  class="flex items-center justify-center px-2 py-0.5 rounded-full bg-surface-gray-3 text-xs font-bold text-ink-gray-7"
+                >
+                  {{ column.column.all_count }}
+                </div>
+              </div>
             </div>
             <div class="flex">
               <Dropdown :options="actions(column)">
@@ -269,6 +276,12 @@ function updateColumn(d, fetchNewColumns = false) {
   let data = { kanban_columns: _columns, fetchNewColumns }
 
   if (toColumn != fromColumn) {
+    if (toColumn && fromColumn) {
+      let toColObj = columns.value.find((c) => c.column.name === toColumn)
+      let fromColObj = columns.value.find((c) => c.column.name === fromColumn)
+      if (toColObj) toColObj.column.all_count++
+      if (fromColObj) fromColObj.column.all_count--
+    }
     data = { item: itemName, to: toColumn, kanban_columns: _columns }
   }
 

@@ -1,7 +1,15 @@
 <template>
   <LayoutHeader>
     <template #left-header>
-      <ViewBreadcrumbs v-model="viewControls" routeName="Deals" />
+      <div class="flex items-center gap-3">
+        <ViewBreadcrumbs v-model="viewControls" routeName="Deals" />
+        <div
+          v-if="deals.data?.total_count"
+          class="flex items-center px-2.5 py-0.5 rounded-full bg-surface-gray-2 border border-outline-gray-2 text-xs font-medium text-ink-gray-7"
+        >
+          {{ __('Total:') }} {{ deals.data.total_count }}
+        </div>
+      </div>
     </template>
     <template #right-header>
       <CustomActions
