@@ -371,16 +371,31 @@ def get_data(
 		if not rows:
 			rows = default_rows
 
-		if not kanban_columns and column_field:
+		if column_field:
 			field_meta = frappe.get_meta(doctype).get_field(column_field)
+			valid_columns = []
 			if field_meta.fieldtype == "Link":
-				kanban_columns = frappe.get_all(
+				valid_columns = frappe.get_all(
 					field_meta.options,
 					fields=["name"],
 					order_by="modified asc",
 				)
 			elif field_meta.fieldtype == "Select":
-				kanban_columns = [{"name": option} for option in field_meta.options.split("\n")]
+				valid_columns = [{"name": option} for option in field_meta.options.split("\n")]
+			
+			if valid_columns:
+				valid_names = [v.get("name") for v in valid_columns]
+				if kanban_columns:
+					# Keep only columns that still exist in options
+					kanban_columns = [kc for kc in kanban_columns if kc.get("name") in valid_names]
+					
+					# Append any new valid columns that are missing
+					existing_names = [kc.get("name") for kc in kanban_columns]
+					for vc in valid_columns:
+						if vc.get("name") not in existing_names:
+							kanban_columns.append({"name": vc.get("name")})
+				else:
+					kanban_columns = valid_columns
 
 		if not title_field:
 			title_field = "name"
@@ -398,6 +413,12 @@ def get_data(
 		for field in kanban_fields:
 			if field not in rows:
 				rows.append(field)
+		
+		# Always ensure SLA fields are fetched
+		if "status_changed_at" not in rows:
+			rows.append("status_changed_at")
+		if "creation" not in rows:
+			rows.append("creation")
 
 		for kc in kanban_columns:
 			# Start with base filters
@@ -474,6 +495,7 @@ def get_data(
 		{"label": "Assigned To", "fieldtype": "Text", "fieldname": "_assign"},
 		{"label": "Owner", "fieldtype": "Link", "fieldname": "owner", "options": "User"},
 		{"label": "Like", "fieldtype": "Data", "fieldname": "_liked_by"},
+		{"label": "Status Changed At", "fieldtype": "Datetime", "fieldname": "status_changed_at"},
 	]
 
 	for field in std_fields:

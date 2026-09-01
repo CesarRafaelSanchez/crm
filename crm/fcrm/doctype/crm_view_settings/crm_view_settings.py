@@ -111,6 +111,21 @@ def update(view: dict):
 	doc.group_by_field = view.group_by_field
 	doc.column_field = view.column_field
 	doc.title_field = view.title_field
+	if doc.type == "kanban":
+		view.doctype = doc.dt
+		view.type = doc.type
+		view.column_field = doc.column_field
+		new_kanban_columns = sync_default_columns(view)
+		valid_names = [v.get("name") for v in new_kanban_columns]
+		if kanban_columns:
+			kanban_columns = [kc for kc in kanban_columns if kc.get("name") in valid_names]
+			existing_names = [kc.get("name") for kc in kanban_columns]
+			for vc in new_kanban_columns:
+				if vc.get("name") not in existing_names:
+					kanban_columns.append({"name": vc.get("name")})
+		else:
+			kanban_columns = new_kanban_columns
+
 	doc.kanban_columns = json.dumps(kanban_columns)
 	doc.kanban_fields = json.dumps(kanban_fields)
 	doc.columns = json.dumps(columns)
@@ -229,8 +244,17 @@ def create_or_update_standard_view(view: dict):
 	rows = rows + default_rows if default_rows else rows
 	rows = remove_duplicates(rows)
 
-	if not kanban_columns and view.type == "kanban":
-		kanban_columns = sync_default_columns(view)
+	if view.type == "kanban":
+		new_kanban_columns = sync_default_columns(view)
+		valid_names = [v.get("name") for v in new_kanban_columns]
+		if kanban_columns:
+			kanban_columns = [kc for kc in kanban_columns if kc.get("name") in valid_names]
+			existing_names = [kc.get("name") for kc in kanban_columns]
+			for vc in new_kanban_columns:
+				if vc.get("name") not in existing_names:
+					kanban_columns.append({"name": vc.get("name")})
+		else:
+			kanban_columns = new_kanban_columns
 	elif not columns:
 		columns = sync_default_columns(view)
 

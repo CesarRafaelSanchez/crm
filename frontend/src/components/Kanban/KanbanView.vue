@@ -89,7 +89,8 @@
               <template #item="{ element: fields }">
                 <component
                   :is="options.getRoute ? 'router-link' : 'div'"
-                  class="pt-3 px-3.5 pb-2.5 rounded-lg border bg-surface-base text-base flex flex-col text-ink-gray-9"
+                  class="pt-3 px-3.5 pb-2.5 rounded-lg text-base flex flex-col transition-colors duration-300"
+                  :class="getAgingClasses(fields)"
                   :data-name="fields.name"
                   v-bind="{
                     to: options.getRoute ? options.getRoute(fields) : undefined,
@@ -103,8 +104,8 @@
                     v-bind="{ fields, titleField, itemName: fields.name }"
                   >
                     <div class="h-5 flex items-center">
-                      <div v-if="fields[titleField]">
-                        {{ fields[titleField] }}
+                      <div v-if="fields && fields[titleField]">
+                        {{ fields[titleField] }} - diff: {{ ((new Date() - new Date(fields.status_changed_at || fields.creation)) / (1000 * 60 * 60)).toFixed(1) }}
                       </div>
                       <div v-else class="text-ink-gray-4">
                         {{ __('No Title') }}
@@ -201,6 +202,21 @@ defineProps({
   },
 })
 
+function getAgingClasses(fields) {
+  if (!fields) return 'bg-surface-base border text-ink-gray-9';
+  let changed_at = fields.status_changed_at || fields.creation;
+  if (!changed_at) return 'bg-surface-base border text-ink-gray-9';
+  
+  let diffHours = (new Date() - new Date(changed_at)) / (1000 * 60 * 60);
+  
+  if (diffHours >= 48) {
+    return 'bg-red-50 text-red-900 border border-red-200';
+  } else if (diffHours >= 24) {
+    return 'bg-amber-50 text-amber-900 border border-amber-200';
+  }
+  return 'bg-surface-base border text-ink-gray-9';
+}
+
 const emit = defineEmits(['update', 'loadMore'])
 
 const kanban = defineModel({ type: Object })
@@ -279,7 +295,13 @@ function updateColumn(d, fetchNewColumns = false) {
     if (toColumn && fromColumn) {
       let toColObj = columns.value.find((c) => c.column.name === toColumn)
       let fromColObj = columns.value.find((c) => c.column.name === fromColumn)
-      if (toColObj) toColObj.column.all_count++
+      if (toColObj) {
+        toColObj.column.all_count++
+        let movedCard = toColObj.data.find(c => c.name === itemName)
+        if (movedCard) {
+          movedCard.status_changed_at = new Date().toISOString()
+        }
+      }
       if (fromColObj) fromColObj.column.all_count--
     }
     data = { item: itemName, to: toColumn, kanban_columns: _columns }
